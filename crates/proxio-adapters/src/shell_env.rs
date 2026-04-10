@@ -1,15 +1,25 @@
-use proxio_core::PlannedOperation;
+use proxio_core::{PlannedEntryValue, PlannedOperation};
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
 pub fn render(operation: &PlannedOperation) -> String {
-    operation
+    let rendered = operation
         .entries
         .iter()
-        .map(|(key, value)| format!("export {}={}", key, shell_quote(value)))
+        .filter_map(|entry| match &entry.value {
+            PlannedEntryValue::Set(value) => {
+                Some(format!("export {}={}", entry.key, shell_quote(value)))
+            }
+            PlannedEntryValue::Unset => None,
+        })
         .collect::<Vec<_>>()
-        .join("\n")
-        + "\n"
+        .join("\n");
+
+    if rendered.is_empty() {
+        rendered
+    } else {
+        rendered + "\n"
+    }
 }

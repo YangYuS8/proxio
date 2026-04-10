@@ -10,9 +10,31 @@ pub enum TargetKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlannedEntryValue {
+    Set(String),
+    Unset,
+}
+
+impl PlannedEntryValue {
+    pub fn is_set(&self) -> bool {
+        matches!(self, Self::Set(_))
+    }
+
+    pub fn is_unset(&self) -> bool {
+        matches!(self, Self::Unset)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlannedEntry {
+    pub key: String,
+    pub value: PlannedEntryValue,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedOperation {
     pub target: TargetKind,
-    pub entries: Vec<(String, String)>,
+    pub entries: Vec<PlannedEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,7 +52,10 @@ impl ApplyPlan {
             .map(|v| v.trim())
             .filter(|v| !v.is_empty())
         {
-            entries.push(("http_proxy".into(), value.to_owned()));
+            entries.push(PlannedEntry {
+                key: "http_proxy".into(),
+                value: PlannedEntryValue::Set(value.to_owned()),
+            });
         }
         if let Some(value) = settings
             .https_proxy
@@ -38,7 +63,10 @@ impl ApplyPlan {
             .map(|v| v.trim())
             .filter(|v| !v.is_empty())
         {
-            entries.push(("https_proxy".into(), value.to_owned()));
+            entries.push(PlannedEntry {
+                key: "https_proxy".into(),
+                value: PlannedEntryValue::Set(value.to_owned()),
+            });
         }
         if let Some(value) = settings
             .all_proxy
@@ -46,14 +74,48 @@ impl ApplyPlan {
             .map(|v| v.trim())
             .filter(|v| !v.is_empty())
         {
-            entries.push(("all_proxy".into(), value.to_owned()));
+            entries.push(PlannedEntry {
+                key: "all_proxy".into(),
+                value: PlannedEntryValue::Set(value.to_owned()),
+            });
         }
 
         let no_proxy = settings.normalized_no_proxy().join(",");
         if !no_proxy.is_empty() {
-            entries.push(("no_proxy".into(), no_proxy));
+            entries.push(PlannedEntry {
+                key: "no_proxy".into(),
+                value: PlannedEntryValue::Set(no_proxy),
+            });
         }
 
+        if entries.is_empty() {
+            return Self::disable();
+        }
+
+        Self::with_entries(entries)
+    }
+
+    pub fn disable() -> Self {
+        let entries = ["http_proxy", "https_proxy", "all_proxy", "no_proxy"]
+            .into_iter()
+            .map(|key| PlannedEntry {
+                key: key.into(),
+                value: PlannedEntryValue::Unset,
+            })
+            .collect();
+
+        Self::with_entries(entries)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.operations
+            .iter()
+            .all(|operation| operation.entries.is_empty())
+    }
+}
+
+impl ApplyPlan {
+    fn with_entries(entries: Vec<PlannedEntry>) -> Self {
         let operations = [
             TargetKind::ShellEnv,
             TargetKind::SystemdUserEnv,

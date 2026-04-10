@@ -3,5 +3,5 @@ pub mod plan;
 pub mod validate;
 
 pub use config::{ProxioConfig, ProxySettings};
-pub use plan::{ApplyPlan, PlannedOperation, TargetKind};
+pub use plan::{ApplyPlan, PlannedEntry, PlannedEntryValue, PlannedOperation, TargetKind};
 pub use validate::ValidationError;

@@ -174,6 +174,10 @@ fn run_commands(
     for spec in &specs {
         let status = runner.run(spec)?;
         if !status.success {
+            if can_ignore_command_failure(target_name, spec, &status.stderr) {
+                continue;
+            }
+
             return Ok(ApplyResultItem {
                 target_name,
                 success: false,
@@ -189,6 +193,16 @@ fn run_commands(
         skipped: false,
         message: format!("applied {} command(s)", specs.len()),
     })
+}
+
+fn can_ignore_command_failure(
+    target_name: &str,
+    spec: &crate::command_runner::CommandSpec,
+    stderr: &str,
+) -> bool {
+    target_name == "git"
+        && spec.args.iter().any(|arg| arg == "--unset")
+        && (stderr.is_empty() || stderr.contains("No such section or key"))
 }
 
 fn run_optional_commands(
