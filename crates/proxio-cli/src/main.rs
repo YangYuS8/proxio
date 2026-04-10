@@ -23,6 +23,9 @@ enum Commands {
         #[arg(long, value_delimiter = ',')]
         no_proxy: Vec<String>,
     },
+    Check {
+        url: String,
+    },
     Show,
     Preview,
     Apply,
@@ -124,6 +127,18 @@ fn run() -> Result<(), String> {
             config.current_profile = Some(name);
             write_config(&path, &config)?;
             println!("saved {}", path.display());
+        }
+        Commands::Check { url } => {
+            let config = read_or_default(&path)?;
+            let (profile_name, settings) =
+                config.current_profile().map_err(|err| err.to_string())?;
+            let report = proxio_diagnose::build_check_report(
+                profile_name,
+                &url,
+                settings,
+                &proxio_diagnose::RealRunner,
+            )?;
+            print_check_report(&report);
         }
         Commands::Show => {
             let config = read_or_default(&path)?;
@@ -254,4 +269,46 @@ fn print_config(config: &ProxioConfig) -> Result<(), String> {
     let content = toml::to_string_pretty(config).map_err(|err| err.to_string())?;
     print!("{}", content);
     Ok(())
+}
+
+fn print_check_report(report: &proxio_diagnose::CheckReport) {
+    let mode = match &report.transport.value {
+        Some(proxy) => format!("proxied via {proxy}"),
+        None => "direct".to_owned(),
+    };
+
+    println!("Target: {}", report.target_url);
+    println!("Profile: {}", report.profile_name);
+    println!("Mode: {}", mode);
+    println!();
+    println!(
+        "DNS  : {} - {}",
+        format_status(report.dns.status),
+        report.dns.summary
+    );
+    println!(
+        "TCP  : {} - {}",
+        format_status(report.tcp.status),
+        report.tcp.summary
+    );
+    println!(
+        "TLS  : {} - {}",
+        format_status(report.tls.status),
+        report.tls.summary
+    );
+    println!(
+        "HTTP : {} - {}",
+        format_status(report.http.status),
+        report.http.summary
+    );
+    println!();
+    println!("Conclusion: {}", report.conclusion);
+}
+
+fn format_status(status: proxio_diagnose::LayerStatus) -> &'static str {
+    match status {
+        proxio_diagnose::LayerStatus::Success => "success",
+        proxio_diagnose::LayerStatus::Failed => "failed",
+        proxio_diagnose::LayerStatus::Skipped => "skipped",
+    }
 }

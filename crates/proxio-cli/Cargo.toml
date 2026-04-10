@@ -8,5 +8,6 @@ version.workspace = true
 clap.workspace = true
 proxio-core = { path = "../proxio-core" }
 proxio-adapters = { path = "../proxio-adapters" }
+proxio-diagnose = { path = "../proxio-diagnose" }
 serde.workspace = true
 toml.workspace = true

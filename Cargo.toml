@@ -3,6 +3,7 @@ members = [
   "crates/proxio-core",
   "crates/proxio-adapters",
   "crates/proxio-cli",
+  "crates/proxio-diagnose",
 ]
 resolver = "2"
 
