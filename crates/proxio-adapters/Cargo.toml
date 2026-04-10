@@ -1,0 +1,9 @@
+[package]
+name = "proxio-adapters"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+proxio-core = { path = "../proxio-core" }
+tempfile.workspace = true

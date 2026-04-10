@@ -1,0 +1,12 @@
+[package]
+name = "proxio"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+clap.workspace = true
+proxio-core = { path = "../proxio-core" }
+proxio-adapters = { path = "../proxio-adapters" }
+serde.workspace = true
+toml.workspace = true
