@@ -1,0 +1,118 @@
+schema: spec-driven
+
+context: |
+  项目名称：Proxio
+
+  项目定位：
+  Proxio 是一个面向 Linux / Wayland / Niri 用户的网络与代理控制中心。
+  它的目标不是替代 NetworkManager，而是统一管理开发者桌面中分散的代理配置入口，
+  包括 shell 环境变量、systemd user environment、Git、npm/pnpm、Docker 等。
+
+  目标用户：
+  - 使用 Linux 桌面进行开发的用户
+  - 使用 Niri、Hyprland、Sway 等 Wayland 环境的用户
+  - 频繁切换代理、内网、直连、实验室网络的用户
+  - 需要快速诊断网络/代理问题的用户
+
+  技术栈：
+  - Rust
+  - Cargo workspace
+  - iced（GUI）
+  - clap（CLI）
+  - tokio（异步运行时）
+  - serde + toml（配置读写）
+  - zbus（D-Bus）
+  - reqwest + rustls（网络诊断）
+  - tracing（日志）
+
+  架构约定：
+  - 使用 Cargo workspace 管理多 crate
+  - crate 划分为：
+    - proxio-core：领域模型、配置结构、校验
+    - proxio-adapters：系统配置适配层
+    - proxio-diagnose：网络与代理诊断
+    - proxio-ui：iced 图形界面
+    - proxio-cli：命令行入口
+  - GUI 不直接操作底层配置，统一通过 core + adapters 调用
+  - 配置优先使用 TOML
+  - 用户级配置优先，不在第一阶段默认修改系统级配置
+  - 默认不直接修改用户现有 .zshrc/.bashrc 大段内容，而是生成独立 env 文件并提示用户 source
+
+  配置范围：
+  第一阶段支持：
+  - http_proxy
+  - https_proxy
+  - all_proxy
+  - no_proxy
+  - systemd user environment.d
+  - shell env file
+  - Git proxy
+  - npm/pnpm proxy
+
+  后续阶段支持：
+  - Docker client / daemon proxy
+  - NetworkManager 状态读取
+  - 网络场景 profile 自动切换
+  - Tailscale / WireGuard 联动
+  - Niri IPC 集成
+
+  产品原则：
+  - 优先解决真实痛点，不做大而全桌面壳
+  - 优先实现“自己每天会用”的功能
+  - 优先做 Linux 原生体验，不依赖 Web 技术栈
+  - 优先保证配置可解释、可恢复、可导出
+  - 每个功能都应可通过 CLI 使用，GUI 只是更友好的前端
+
+  代码风格与工程要求：
+  - 保持模块边界清晰，避免 GUI 与系统适配层耦合
+  - 优先小而明确的 trait / adapter 设计
+  - 所有配置写入逻辑必须可测试
+  - 所有副作用操作应返回明确错误
+  - 避免“魔法行为”，重要变更需可预览或可回滚
+  - 尽量避免引入重量级依赖
+  - 优先使用 rustls，避免 openssl 依赖链
+  - 为未来打包到 Arch / CachyOS 保持结构简洁
+
+rules:
+  proposal:
+    - 提案必须围绕 Proxio 的真实用户痛点展开，避免空泛功能堆砌
+    - 提案必须明确说明该功能属于 core、adapters、diagnose、ui、cli 中的哪一层
+    - 提案必须包含“目标”“非目标”“用户价值”“技术影响”“风险”五个部分
+    - 若功能涉及系统配置修改，必须说明修改范围、配置落点和回滚策略
+    - 优先提出可在 1 周内做出 MVP 的功能，不要默认设计大而全方案
+
+  tasks:
+    - 将任务拆分为可执行的小步骤，单个任务尽量控制在 2 小时以内
+    - 任务必须标注所属 crate
+    - 任务必须区分“纯逻辑”“系统适配”“UI”“测试”“文档”
+    - 涉及配置写入的任务，必须包含测试任务
+    - 涉及新依赖的任务，必须说明引入原因
+    - 优先先做 CLI 和底层能力，再做 GUI 封装
+    - 第一阶段避免安排系统级 root 权限相关任务，除非明确需要
+
+  spec:
+    - 规格说明必须清楚描述输入、输出、边界条件和失败场景
+    - 对外行为必须优先描述用户可见效果，而不是只写内部实现
+    - 涉及 profile、代理变量、配置文件时，必须给出示例
+    - 涉及诊断功能时，必须区分 DNS、TCP、TLS、HTTP 四层结果
+    - 不要把“读取状态”和“写入配置”混为一个功能
+
+  implementation:
+    - 默认使用 Rust 2024 edition
+    - 新增代码优先放入对应 crate，不要把逻辑堆到 proxio-ui
+    - 配置模型统一放在 proxio-core
+    - 系统交互统一放在 proxio-adapters
+    - 网络诊断统一放在 proxio-diagnose
+    - CLI 命令入口统一放在 proxio-cli
+    - GUI 只负责状态展示、用户交互与调用应用服务
+    - 所有文件路径处理必须集中管理，避免散落硬编码
+    - 所有配置文件写入操作必须尽量原子化
+    - 重要逻辑必须补充单元测试或集成测试
+
+  review:
+    - 检查是否破坏 crate 分层
+    - 检查是否引入不必要的复杂度
+    - 检查是否存在未经说明的副作用
+    - 检查错误信息是否足够明确
+    - 检查是否适配 Linux / Wayland / Niri 用户场景
+    - 检查是否真的提升了“代理配置与诊断”的日常体验
