@@ -1,3 +1,3 @@
-fn main() -> iced::Result {
+fn main() -> cosmic::iced::Result {
     proxio_ui::app::run()
 }

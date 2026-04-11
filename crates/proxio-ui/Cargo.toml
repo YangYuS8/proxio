@@ -5,11 +5,10 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
-iced = { version = "0.13", features = ["tokio"] }
+cosmic.workspace = true
 proxio-core = { path = "../proxio-core" }
 proxio-adapters = { path = "../proxio-adapters" }
 proxio-diagnose = { path = "../proxio-diagnose" }
-tokio = { version = "1", features = ["rt", "sync"] }
 toml.workspace = true
 
 [dev-dependencies]
